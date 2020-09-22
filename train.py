@@ -15,6 +15,7 @@ from data import DS, InfiniteSampler
 from loss import ConsistencyLoss, calc_gan_loss
 from model import InpaintNet, FeaturePatchDiscriminator, PatchDiscriminator
 
+#torch.autograd.set_detect_anomaly(True)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--root', type=str, default='./root')
@@ -98,17 +99,22 @@ for i in tqdm(range(start_iter, args.max_iter)):
     gan_loss = fg_loss + pg_loss
     cons_loss = cons(csa, csa_d, img, mask)
     total_loss = 1*recon_loss + 0.01*cons_loss + 0.002*gan_loss
-    g_optimizer.zero_grad()
+    
     total_loss.backward(retain_graph=True)
-    g_optimizer.step()
-
-    fd_optimizer.zero_grad()
     fd_loss.backward(retain_graph=True)
-    fd_optimizer.step()
-
-    pd_optimizer.zero_grad()
     pd_loss.backward()
+    
+    g_optimizer.step()
+    fd_optimizer.step()
     pd_optimizer.step()
+    
+    
+    g_optimizer.zero_grad()
+    fd_optimizer.zero_grad()
+    pd_optimizer.zero_grad()
+    
+    
+
 
     if (i + 1) % args.save_model_interval == 0 or (i + 1) == args.max_iter:
         #torch.save(g_model.state_dict(), f'{args.save_dir}/ckpt/G_{i + 1}.pth')
